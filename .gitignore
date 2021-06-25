@@ -1,0 +1,6 @@
+# Folder for storing data
+data/*
+
+# Python environment bits & IDE artefacts
+.python-version
+.idea
