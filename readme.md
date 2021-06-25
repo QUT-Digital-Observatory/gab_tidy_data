@@ -9,5 +9,11 @@ This tool is designed from an academic research viewpoint.
 
 Tested on Python 3.8.5
 
+## Database schema
+
+# Gab
+
+id
+
 
 [Garc]: https://github.com/ChrisStevens/garc
