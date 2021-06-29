@@ -26,11 +26,29 @@ create table account (
 -- fields TODO:
 -- - emojis
 -- - fields
+-- TODO: incorporate time (gab_id, gab_created_at, change primary key, change table name to gab_account?)
 
 
 create table group (
-) -- TODO
-
+    id text primary key,
+    title text,
+    description text,
+    description_html text,
+    cover_image_url text,
+    is_archived integer, -- boolean
+    member_count integer,
+    created_at text,
+    created_at_parsed float, -- created_at in julianday format
+    is_private integer, -- boolean
+    is_visible integer, -- boolean
+    slug text,
+    url text,
+    -- tags
+    -- group_category
+    has_password integer -- boolean
+) -- TODO: incorporate time
+-- Fields omitted:
+-- - password
 
 create table media_attachment (
     id text primary key,
@@ -68,30 +86,44 @@ create table gab (
     pinnable_by_group integer, -- boolean
     favourites_count integer,
     quote_of_id text,
-    expires_at ???,
-    has_quote ???,
+    expires_at text, -- Presumably a date? Not contained in sample data
+    has_quote integer, -- boolean
     content text, -- HTML text of gab
     rich_content text, -- Not sure how different from content?
     plain_markdown text,
     -- reblog
     account_id text references account (id),
     group_id text references group (id),
-    -- mentions
-    -- tags
+    mention_user_ids text, -- List (comma-separated) of account IDs of mentioned users
+    mention_usernames text -- List (comma-separated) of usernames of mentioned users
+    tags text -- List (comma-separated) of tag names
 )
 -- fields omitted:
 -- - User-specific: favourited, reblogged, bookmark_collection_id
 -- - quote: use quote_of_id to identify the quoted tweet
 -- fields added:
 -- - created_at_parsed, revised_at_parsed
+-- - mention_user_ids, mention_usernames, tags - convenience columns duplicating
+--   information available in the gab_mention and gab_tag tables respectively
 -- fields TODO:
--- - reblog
--- - mentions
--- - tags
+-- - reblog -- is this field unused or just no values present in this sample data?
+
+create table gab_mention (
+    gab_id text references gab (id),
+    account_id text not null, -- User may or may not be contained in Account table
+    url text, -- Corresponds to account.url
+    acct text -- Corresponds to account.acct
+)
 
 create table gab_media_attachment (
     gab_id text references gab (id),
     media_attachment_id text references media_attachment (id)
+)
+
+create table gab_tag (
+    gab_id text references gab (id),
+    name text not null, -- tag name
+    url text not null -- Gab url for tag
 )
 
 -- Metadata table to track which files have been inserted into this database
