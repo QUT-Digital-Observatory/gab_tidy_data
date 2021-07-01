@@ -1,6 +1,10 @@
 # Folder for storing data
 data/*
 
+# Gab Tidy Data log file
+*.log
+
 # Python environment bits & IDE artefacts
 .python-version
 .idea
+*__pycache__*
