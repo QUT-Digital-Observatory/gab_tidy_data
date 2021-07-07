@@ -1,12 +1,39 @@
+-----------------------------------
+-- Gab Tidy Data metadata tables --
+-----------------------------------
+
+-- Metadata table for gab_tidy_data tool
+create table _gab_tidy_data (
+    metadata_key text primary key on conflict fail,
+    metadata_value text
+);
+
+-- Update this whenever the schema is changed!!!
+insert into _gab_tidy_data values ("schema_version", "2021-07-06");
+
+-- Metadata table to track which files have been inserted into this database
+create table _inserted_files (
+    id integer primary key,
+    filename string not null,
+    num_gabs_inserted integer,  -- null may indicate unsuccessful insert
+    num_parsing_failures integer,  -- counts lines of input file, not gabs
+    inserted_at real default (julianday('now', 'utc')),
+    inserted_by_version text  -- stores the gab_tidy_data tool version
+);
+
+---------------------
+-- Gab data tables --
+---------------------
+
 create table account (
-    id text primary key, -- Gab-provided user id
+    id text, -- Gab-provided user id
     username text not null,
     acct text,
     display_name text,
     locked integer, -- boolean
     bot integer, -- boolean
     created_at text, -- Unparsed ISO datetime
-    created_at_parsed real, -- created_at in julianday format
+    created_at_parsed real generated always as julianday(created_at) stored, -- created_at in julianday format
     note text,
     url text,
     avatar text,
@@ -21,16 +48,17 @@ create table account (
     is_verified integer, -- boolean
     is_donor integer, -- boolean
     is_investor integer, --boolean,
-
-)
+    posted_gab_id text references gab (id), -- the gab which this account info came with
+    -- might be handy to include the gab_created_at?
+    primary key (id, posted_gab_id)
+);
 -- fields TODO:
 -- - emojis
 -- - fields
 -- TODO: incorporate time (gab_id, gab_created_at, change primary key, change table name to gab_account?)
 
-
-create table group (
-    id text primary key,
+create table gab_group ( -- note: sqlite does not allow naming a table "group"
+    id text,
     title text,
     description text,
     description_html text,
@@ -38,15 +66,17 @@ create table group (
     is_archived integer, -- boolean
     member_count integer,
     created_at text,
-    created_at_parsed float, -- created_at in julianday format
+    created_at_parsed float generated always as julianday(created_at) stored, -- created_at in julianday format
     is_private integer, -- boolean
     is_visible integer, -- boolean
     slug text,
     url text,
     -- tags
     -- group_category
-    has_password integer -- boolean
-) -- TODO: incorporate time
+    has_password integer, -- boolean
+    posted_gab_id text references gab (id),
+    primary key (id, posted_gab_id)
+); -- TODO: incorporate time
 -- Fields omitted:
 -- - password
 
@@ -61,7 +91,7 @@ create table media_attachment (
     description text,
     blurhash text,
     file_content_type text
-)
+);
 -- Fields omitted:
 -- - meta object containing media dimensions etc
 
@@ -91,13 +121,15 @@ create table gab (
     content text, -- HTML text of gab
     rich_content text, -- Not sure how different from content?
     plain_markdown text,
-    -- reblog
+    reblog text, -- Always null. Should be json if not null in theory. Does the Gab hashtag API only give original posts and no reblogs?
     account_id text references account (id),
-    group_id text references group (id),
+    group_id text references gab_group (id),
     mention_user_ids text, -- List (comma-separated) of account IDs of mentioned users
     mention_usernames text -- List (comma-separated) of usernames of mentioned users
-    tags text -- List (comma-separated) of tag names
-)
+    tags text, -- List (comma-separated) of tag names
+    _embedded_gab integer, -- boolean - True means this gab was embedded in a gab that was in the search results, rather than being directly in the search results itself
+    _file_id integer references _inserted_files (id) -- which result file this record was loaded from
+);
 -- fields omitted:
 -- - User-specific: favourited, reblogged, bookmark_collection_id
 -- - quote: use quote_of_id to identify the quoted tweet
@@ -105,30 +137,21 @@ create table gab (
 -- - created_at_parsed, revised_at_parsed
 -- - mention_user_ids, mention_usernames, tags - convenience columns duplicating
 --   information available in the gab_mention and gab_tag tables respectively
--- fields TODO:
--- - reblog -- is this field unused or just no values present in this sample data?
 
 create table gab_mention (
     gab_id text references gab (id),
     account_id text not null, -- User may or may not be contained in Account table
     url text, -- Corresponds to account.url
     acct text -- Corresponds to account.acct
-)
+);
 
 create table gab_media_attachment (
     gab_id text references gab (id),
     media_attachment_id text references media_attachment (id)
-)
+);
 
 create table gab_tag (
     gab_id text references gab (id),
     name text not null, -- tag name
     url text not null -- Gab url for tag
-)
-
--- Metadata table to track which files have been inserted into this database
-create table _inserted_files (
-    filename string not null,
-    num_records_inserted integer,
-    inserted_at real default (julianday('now', 'utc'))
-)
+);
