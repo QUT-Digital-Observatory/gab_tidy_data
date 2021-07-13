@@ -8,3 +8,5 @@ data/*
 .python-version
 .idea
 *__pycache__*
+.eggs
+*.egg-info
