@@ -6,7 +6,7 @@ from click import format_filename
 
 from typing import Tuple, TextIO, Sequence
 
-from gab_data_mapping import *
+import gab_data_mapping as data_mapping
 
 
 logger = getLogger(__name__)
@@ -15,7 +15,7 @@ metadata_table_names = [
     '_gab_tidy_data',
     '_inserted_files'
 ]
-all_table_names = metadata_table_names + data_table_names
+all_table_names = metadata_table_names + data_mapping.data_table_names
 
 
 def initialise_empty_database(db_connection: sqlite3.Connection):
@@ -82,15 +82,15 @@ def load_file_to_sqlite(json_fh: TextIO, db_connection):
             continue  # Skip lines with JSON parsing issues
 
         # Parse this gab, and any gabs embedded within this gab
-        gab_mappings = map_gab_for_insert(file_id, gab_json)
+        gab_mappings = data_mapping.map_gab_for_insert(file_id, gab_json)
 
         for table, mappings in gab_mappings.items():
             if len(mappings) == 0 or len(mappings[0]) == 0: # such a hack - why is group coming up as [[]]?
                 continue
             elif not isinstance(mappings, list):
-                db.execute(insert_sql[table], mappings)
+                db.execute(data_mapping.insert_sql[table], mappings)
             else:
-                db.executemany(insert_sql[table], mappings)
+                db.executemany(data_mapping.insert_sql[table], mappings)
 
     # How many gabs were successfully inserted from this file
     db.execute("select count(*) from gab where _file_id = ?", [file_id])
