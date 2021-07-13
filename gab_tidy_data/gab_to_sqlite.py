@@ -27,12 +27,14 @@ def initialise_empty_database(db_connection: sqlite3.Connection):
     with sql_filepath.open() as sql_file:
         db_connection.executescript("\n".join(sql_file))
 
+    db_connection.commit()
+
     db = db_connection.cursor()  # todo: inconsistent with other db uses
     # ".tables" only works in the sqlite shell!
     db.execute("SELECT name FROM sqlite_master WHERE type='table';")
     created_tables = db.fetchall()
     logger.debug("Created database tables: " + str(created_tables))
-    assert len(created_tables) == sum([len(value) for _, value in all_table_names.items()])
+    assert len(created_tables) == len(all_table_names)
     logger.info("The database schema has been initialised")
     db.close()
 
@@ -79,10 +81,16 @@ def load_file_to_sqlite(json_fh: TextIO, db_connection):
             failed_parsing.append(gab_line)
             continue  # Skip lines with JSON parsing issues
 
-        gab_id = gab_json["id"]
+        # Parse this gab, and any gabs embedded within this gab
+        gab_mappings = map_gab_for_insert(file_id, gab_json)
 
-        db.execute("insert or replace into gab (id, created_at, _file_id) values (?, ?, ?)", [gab_id, gab_json["created_at"], file_id])
-        db.execute(*map_account_for_insert(gab_id, gab_json["account"]))
+        for table, mappings in gab_mappings.items():
+            if len(mappings) == 0 or len(mappings[0]) == 0: # such a hack - why is group coming up as [[]]?
+                continue
+            elif not isinstance(mappings, list):
+                db.execute(insert_sql[table], mappings)
+            else:
+                db.executemany(insert_sql[table], mappings)
 
     # How many gabs were successfully inserted from this file
     db.execute("select count(*) from gab where _file_id = ?", [file_id])

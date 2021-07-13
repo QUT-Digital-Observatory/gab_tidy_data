@@ -17,7 +17,7 @@ create table _inserted_files (
     filename string not null,
     num_gabs_inserted integer,  -- null may indicate unsuccessful insert
     num_parsing_failures integer,  -- counts lines of input file, not gabs
-    inserted_at real default (julianday('now', 'utc')),
+--    inserted_at real default (julianday("now", "utc")),
     inserted_by_version text  -- stores the gab_tidy_data tool version
 );
 
@@ -33,7 +33,7 @@ create table account (
     locked integer, -- boolean
     bot integer, -- boolean
     created_at text, -- Unparsed ISO datetime
-    created_at_parsed real generated always as julianday(created_at) stored, -- created_at in julianday format
+--    created_at_parsed real generated always as julianday(created_at) stored, -- created_at in julianday format
     note text,
     url text,
     avatar text,
@@ -66,7 +66,7 @@ create table gab_group ( -- note: sqlite does not allow naming a table "group"
     is_archived integer, -- boolean
     member_count integer,
     created_at text,
-    created_at_parsed float generated always as julianday(created_at) stored, -- created_at in julianday format
+--    created_at_parsed float generated always as julianday(created_at) stored, -- created_at in julianday format
     is_private integer, -- boolean
     is_visible integer, -- boolean
     slug text,
