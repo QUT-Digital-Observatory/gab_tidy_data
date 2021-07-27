@@ -9,7 +9,7 @@ create table _gab_tidy_data (
 );
 
 -- Update this whenever the schema is changed!!!
-insert into _gab_tidy_data values ("schema_version", "2021-07-06");
+insert into _gab_tidy_data values ("schema_version", "2021-07-20");
 
 -- Metadata table to track which files have been inserted into this database
 create table _inserted_files (
