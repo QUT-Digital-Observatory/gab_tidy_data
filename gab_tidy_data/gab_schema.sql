@@ -17,7 +17,7 @@ create table _inserted_files (
     filename string not null,
     num_gabs_inserted integer,  -- null may indicate unsuccessful insert
     num_parsing_failures integer,  -- counts lines of input file, not gabs
---    inserted_at real default (julianday("now", "utc")),
+    inserted_at real,
     inserted_by_version text  -- stores the gab_tidy_data tool version
 );
 
@@ -25,6 +25,17 @@ create table _inserted_files (
 -- Gab data tables --
 ---------------------
 
+-- While technically these can change over time, for simplicity we treat them as static
+create table emoji (
+    shortcode text primary key,
+    url text,
+    static_url text
+);
+-- fields omitted:
+-- - visible_in_picker
+
+-- One row for every account per file - If multiple files are loaded, accounts may have
+-- multiple rows.
 create table account (
     id text, -- Gab-provided user id
     username text not null,
@@ -33,7 +44,7 @@ create table account (
     locked integer, -- boolean
     bot integer, -- boolean
     created_at text, -- Unparsed ISO datetime
---    created_at_parsed real generated always as julianday(created_at) stored, -- created_at in julianday format
+    created_at_parsed real generated always as (julianday(created_at)) stored, -- created_at in julianday format
     note text,
     url text,
     avatar text,
@@ -48,14 +59,26 @@ create table account (
     is_verified integer, -- boolean
     is_donor integer, -- boolean
     is_investor integer, --boolean,
-    posted_gab_id text references gab (id), -- the gab which this account info came with
-    -- might be handy to include the gab_created_at?
-    primary key (id, posted_gab_id)
+    _file_id integer references _inserted_files (id),
+    primary key (id, _file_id)
 );
--- fields TODO:
--- - emojis
--- - fields
--- TODO: incorporate time (gab_id, gab_created_at, change primary key, change table name to gab_account?)
+
+create table account_fields (
+    account_id text references account (id),
+    _file_id integer references _inserted_files (id),
+    ordering integer,  -- Which order the fields appear in, starting at 1
+    name text,
+    value text,
+    verified_at text,
+    primary key (account_id, _file_id, ordering)
+);
+
+create table account_emoji (
+    account_id text references account (id),
+    _file_id integer references _inserted_files (id),
+    emoji_shortcode text references emoji (shortcode),
+    primary key (account_id, _file_id, emoji_shortcode)
+);
 
 create table gab_group ( -- note: sqlite does not allow naming a table "group"
     id text,
@@ -66,19 +89,26 @@ create table gab_group ( -- note: sqlite does not allow naming a table "group"
     is_archived integer, -- boolean
     member_count integer,
     created_at text,
---    created_at_parsed float generated always as julianday(created_at) stored, -- created_at in julianday format
+    created_at_parsed real generated always as (julianday(created_at)) stored, -- created_at in julianday format
     is_private integer, -- boolean
     is_visible integer, -- boolean
     slug text,
     url text,
-    -- tags
     -- group_category
     has_password integer, -- boolean
-    posted_gab_id text references gab (id),
-    primary key (id, posted_gab_id)
-); -- TODO: incorporate time
+    _file_id integer references _inserted_files (id),
+    primary key (id, _file_id)
+);
 -- Fields omitted:
 -- - password
+
+-- Groups have their own tag structure, separate from post tags
+create table group_tag (
+    group_id text references gab_group (id),
+    _file_id integer references _inserted_files (id),
+    tag text,
+    primary key (group_id, _file_id, tag)
+);
 
 create table media_attachment (
     id text primary key,
@@ -97,11 +127,11 @@ create table media_attachment (
 
 
 create table gab (
-    id text primary key, -- Gab-provided id
+    id text, -- Gab-provided id
     created_at text not null, -- Unparsed text - appears to be in ISO format
-    created_at_parsed real, -- created_at in julianday format
+    created_at_parsed real generated always as (julianday(created_at)) stored, -- created_at in julianday format
     revised_at text, -- Unparsed text
-    revised_at_parsed real, -- revised_at in julianday format
+    revised_at_parsed real generated always as (julianday(revised_at)) stored, -- revised_at in julianday format
     in_reply_to_id text,
     in_reply_to_account_id text,
     sensitive integer, -- boolean
@@ -128,7 +158,8 @@ create table gab (
     mention_usernames text -- List (comma-separated) of usernames of mentioned users
     tags text, -- List (comma-separated) of tag names
     _embedded_gab integer, -- boolean - True means this gab was embedded in a gab that was in the search results, rather than being directly in the search results itself
-    _file_id integer references _inserted_files (id) -- which result file this record was loaded from
+    _file_id integer references _inserted_files (id), -- which result file this record was loaded from
+    primary key (id, _file_id)
 );
 -- fields omitted:
 -- - User-specific: favourited, reblogged, bookmark_collection_id
@@ -137,6 +168,14 @@ create table gab (
 -- - created_at_parsed, revised_at_parsed
 -- - mention_user_ids, mention_usernames, tags - convenience columns duplicating
 --   information available in the gab_mention and gab_tag tables respectively
+
+create table gab_tag (
+    gab_id text references gab (id),
+    _file_id text references gab (_file_id),
+    name text, -- tag name
+    url text, -- Gab url for tag
+    primary key (gab_id, _file_id, name)
+);
 
 create table gab_mention (
     gab_id text references gab (id),
@@ -150,8 +189,25 @@ create table gab_media_attachment (
     media_attachment_id text references media_attachment (id)
 );
 
-create table gab_tag (
+-- Assumes emoji are only in the content, and that the content doesn't change over time
+create table gab_emoji (
     gab_id text references gab (id),
-    name text not null, -- tag name
-    url text not null -- Gab url for tag
+    emoji_shortcode text references emoji (shortcode)
 );
+
+
+---------------------
+--      Views      --
+---------------------
+
+-- These views remove the time element from the tables, so there is only one row per
+-- post, account, etc. Where the full table does have multiple rows per post (for
+-- example), it is arbitrary which row for each post is displayed in the view, but in
+-- practice it usually seems to be the first row in the table per post.
+-- See https://www.sqlite.org/quirks.html#aggregate_queries_can_contain_non_aggregate_result_columns_that_are_not_in_the_group_by_clause
+
+create view gab_unique as select * from gab group by id;
+
+create view author_unique as select * from author group by id;
+
+create view gab_group_unique as select * from gab_group group by id;

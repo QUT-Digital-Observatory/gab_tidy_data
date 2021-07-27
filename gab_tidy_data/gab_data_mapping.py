@@ -24,21 +24,51 @@ The SQL queries should specify what should happen on primary key conflict.
 """
 
 from logging import getLogger
-from typing import Tuple, Dict, List, OrderedDict as OrderedDictType
-from collections import OrderedDict
+from typing import Dict, List, Any
 
 logger = getLogger(__name__)
 
+# Tables are ordered by how data should be inserted if foreign key integrity were to be
+# enforced
 data_table_names = [
-    'gab',
+    'emoji',
     'account',
+    'account_fields',
+    'account_emoji',
     'gab_group',
+    'group_tag',
     'media_attachment',
+    'gab',
     'gab_mention',
     'gab_media_attachment',
-    'gab_tag'
+    'gab_tag',
+    'gab_emoji'
 ]
 insert_sql = dict()
+
+# -------------------
+# ---    Emoji    ---
+# -------------------
+insert_sql["emoji"] = """
+    insert or ignore into emoji (
+        shortcode,
+        url, static_url
+    ) values (
+        :shortcode,
+        :url, :static_url
+    )
+"""
+
+
+def map_emoji_list_for_insert(emoji_json) -> Dict[str, List[Dict]]:
+    mapped = [
+        {
+            "shortcode": emoji["shortcode"],
+            "url": emoji["url"],
+            "static_url": emoji["static_url"]
+        } for emoji in emoji_json
+    ]
+    return {'emoji': mapped}
 
 
 # -------------------
@@ -54,7 +84,7 @@ insert_sql["account"] = """
         is_spam,
         followers_count, following_count, statuses_count,
         is_pro, is_verified, is_donor, is_investor,
-        posted_gab_id
+        _file_id
     )
     values (
         :id, :username, :acct, :display_name,
@@ -64,12 +94,34 @@ insert_sql["account"] = """
         :is_spam,
         :followers_count, :following_count, :statuses_count,
         :is_pro, :is_verified, :is_donor, :is_investor,
-        :posted_gab_id
+        :_file_id
+    )
+"""
+insert_sql["account_emoji"] = """
+    insert or ignore into account_emoji (
+        account_id, _file_id,
+        emoji_shortcode
+    ) values (
+        :account_id, :_file_id,
+        :emoji_shortcode
+    )
+"""
+insert_sql["account_fields"] = """
+    insert or ignore into account_fields (
+        account_id, _file_id,
+        ordering,
+        name, value,
+        verified_at
+    ) values (
+        :account_id, :_file_id,
+        :ordering,
+        :name, :value,
+        :verified_at
     )
 """
 
 
-def map_account_for_insert(gab_id, account_json) -> Tuple[str, Dict]:
+def map_account_for_insert(file_id, gab_id, account_json) -> Dict[str, List[Dict]]:
     """
     Takes JSON object for the gab user account, and the Gab ID of the Gab this user
     account information was fetched with, and returns an SQL insert statement, ready
@@ -79,7 +131,7 @@ def map_account_for_insert(gab_id, account_json) -> Tuple[str, Dict]:
     to map the account information from the Gab JSON to the database table, this is
     where to do it.
     """
-    return "account", {  # comments indicate SQLite column type
+    account = {  # comments indicate SQLite column type
         "id": account_json["id"],  # text
         "username": account_json["username"],  # text
         "acct": account_json["acct"],  # text
@@ -101,7 +153,34 @@ def map_account_for_insert(gab_id, account_json) -> Tuple[str, Dict]:
         "is_verified": account_json["is_verified"],  # integer (boolean)
         "is_donor": account_json["is_donor"],  # integer (boolean)
         "is_investor": account_json["is_investor"],  # integer (boolean)
-        "posted_gab_id": gab_id,  # text
+        "_file_id": file_id
+    }
+
+    account_fields = []
+    for i, field in enumerate(account_json["fields"], start=1):
+        account_fields.append({
+            "account_id": account["id"],
+            "_file_id": file_id,
+            "ordering": i,
+            "name": field["name"],
+            "value": field["value"],
+            "verified_at": field["verified_at"]
+        })
+
+    emoji = map_emoji_list_for_insert(account_json["emojis"])["emoji"]
+    account_emoji = []
+    for e in emoji:
+        account_emoji.append({
+            "account_id": account["id"],
+            "_file_id": file_id,
+            "emoji_shortcode": e["shortcode"]
+        })
+
+    return {
+        "account": [account],
+        "emoji": emoji,
+        "account_emoji": account_emoji,
+        "account_fields": account_fields
     }
 
 
@@ -117,7 +196,7 @@ insert_sql["gab_group"] = """
         member_count,
         created_at,
         has_password,
-        posted_gab_id
+        _file_id
     ) values (
         :id, :title, :slug, :url,
         :description, :description_html, :cover_image_url,
@@ -125,13 +204,22 @@ insert_sql["gab_group"] = """
         :member_count,
         :created_at,
         :has_password,
-        :posted_gab_id
+        :_file_id
+    )
+"""
+insert_sql["group_tag"] = """
+    insert or ignore into group_tag (
+        group_id, _file_id,
+        tag
+    ) values (
+        :group_id, :_file_id,
+        :tag
     )
 """
 
 
-def map_group_for_insert(gab_id, group_json) -> Tuple[str, Dict]:
-    return "gab_group", {
+def map_group_for_insert(file_id, group_json) -> Dict[str, List[Dict]]:
+    group = {
             "id": group_json["id"],  # text
             "title": group_json["title"],  # text
             "description": group_json["description"],  # text
@@ -145,7 +233,23 @@ def map_group_for_insert(gab_id, group_json) -> Tuple[str, Dict]:
             "slug": group_json["slug"],  # text
             "url": group_json["url"],  # text
             "has_password": group_json["has_password"],  # integer (boolean)
-            "posted_gab_id": gab_id,  # text
+            "_file_id": file_id,  # text
+    }
+
+    if group_json["tags"] is not None:
+        tags = [
+            {
+                "group_id": group["id"],
+                "_file_id": file_id,
+                "tag": tag
+            } for tag in group_json["tags"]
+        ]
+    else:
+        tags = []
+
+    return {
+        "gab_group": [group],
+        "group_tag": tags
     }
 
 
@@ -179,7 +283,7 @@ insert_sql["gab_media_attachment"] = """
 """
 
 
-def map_media_for_insert(gab_id, media_json) -> OrderedDictType[str, List[Dict]]:
+def map_media_for_insert(gab_id, media_json) -> Dict[str, List[Dict]]:
     media_field_mapping = {
         "id": media_json["id"],  # text
         "type": media_json["type"],  # text
@@ -196,10 +300,10 @@ def map_media_for_insert(gab_id, media_json) -> OrderedDictType[str, List[Dict]]
         "gab_id": gab_id,  # text
         "media_attachment_id": media_json["id"]  # text
     }
-    return OrderedDict([
-        ("media_attachment", [media_field_mapping]),
-        ("gab_media_attachment", [gab_media_relationship_mapping])
-    ])
+    return {
+        "media_attachment": [media_field_mapping],
+        "gab_media_attachment": [gab_media_relationship_mapping]
+    }
 
 
 # -------------------
@@ -248,46 +352,37 @@ insert or replace into gab (
 """
 
 
-def map_gab_for_insert(file_id, gab_json, embedded_gab=False) -> OrderedDictType[str, list]:
+def add_mappings(to_extend: Dict[Any, List], addition: Dict[Any, List]):
+    """
+    Appends all the mappings for each table from `addition` into `to_extend`.
+    Expects all keys in `addition` to already exist in `to_extend`.
+    """
+    for table in addition.keys():
+        to_extend[table].extend(addition[table])
+
+
+def map_gab_for_insert(file_id, gab_json, embedded_gab=False) -> Dict[str, list]:
     """
     As the top-level json, object, this function will call all other mapping functions.
     This may include map_gab_for_insert itself where gabs are embedded (e.g. quotes)
     """
     gab_id = gab_json["id"]
 
-    mappings = OrderedDict([
-        ("account", list()),
-        ("gab_group", list()),
-        ("gab", list()),
-        ("media_attachment", list()),
-        ("gab_media_attachment", list()),
-        ("gab_mention", list()),
-        ("gab_tag", list())
-    ])
-    merged_mappings = OrderedDict([
-        ("account", list()),
-        ("gab_group", list()),
-        ("gab", list()),
-        ("media_attachment", list()),
-        ("gab_media_attachment", list()),
-        ("gab_mention", list()),
-        ("gab_tag", list())
-    ])  # could be nicer
+    # Dict *ought* to retain key order - needed for foreign key integrity (if used)
+    mappings = {t: [] for t in data_table_names}
 
     assert set(mappings.keys()) == set(data_table_names)
-    # how best to store/represent batches/chunks of rows to load?
-    # must be ordered. recursive calls add rows to front of list.
 
     # Account
-    table, mapping = map_account_for_insert(gab_id, gab_json["account"])
-    account_id = mapping["id"]
-    mappings[table].append(mapping)
+    account_mappings = map_account_for_insert(file_id, gab_id, gab_json["account"])
+    account_id = account_mappings["account"][0]["id"]
+    add_mappings(mappings, account_mappings)
 
     # Group
     if gab_json["group"] is not None:
-        table, mapping = map_group_for_insert(gab_id, gab_json["group"])
-        group_id = mapping["id"]
-        mappings[table].append(mapping)
+        group_mappings = map_group_for_insert(file_id, gab_json["group"])
+        group_id = group_mappings["gab_group"][0]["id"]
+        add_mappings(mappings, group_mappings)
     else:
         group_id = None
 
@@ -326,7 +421,7 @@ def map_gab_for_insert(file_id, gab_json, embedded_gab=False) -> OrderedDictType
         "content": gab_json["content"],  # text
         "rich_content": gab_json["rich_content"],  # text
         "plain_markdown": gab_json["plain_markdown"],  # text
-        # "reblog": gab_json["reblog"],  # text
+        "reblog": gab_json["reblog"],  # text - may need to be parsed as embedded gab
         "account_id": account_id,  # text
         "group_id": group_id,  # text
         "_embedded_gab": embedded_gab,  # integer (boolean)
@@ -339,10 +434,12 @@ def map_gab_for_insert(file_id, gab_json, embedded_gab=False) -> OrderedDictType
     if gab_json["quote"] is not None:
         embedded_gabs.append(map_gab_for_insert(file_id, gab_json["quote"], embedded_gab=True))
 
+    # Merge embedded gabs in with this gab!
+    merged_mappings = {t: [] for t in data_table_names}
+
     # This gab goes last after any embedded gabs
     for mapped_gab in embedded_gabs + [mappings]:
-        for table in data_table_names:
-            merged_mappings[table].extend(mapped_gab[table])
+        add_mappings(merged_mappings, mapped_gab)
 
     return merged_mappings
 
