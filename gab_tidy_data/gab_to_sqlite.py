@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from click import format_filename
 
-from typing import Tuple, TextIO, Sequence
+from typing import TextIO
 
 import gab_data_mapping as data_mapping
 

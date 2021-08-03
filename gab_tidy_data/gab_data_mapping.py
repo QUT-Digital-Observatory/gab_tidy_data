@@ -35,6 +35,7 @@ data_table_names = [
     'account',
     'account_fields',
     'account_emoji',
+    'group_category',
     'gab_group',
     'group_tag',
     'media_attachment',
@@ -192,6 +193,7 @@ insert_sql["gab_group"] = """
     insert or replace into gab_group (
         id, title, slug, url,
         description, description_html, cover_image_url,
+        group_category,
         is_archived, is_private, is_visible,
         member_count,
         created_at,
@@ -200,6 +202,7 @@ insert_sql["gab_group"] = """
     ) values (
         :id, :title, :slug, :url,
         :description, :description_html, :cover_image_url,
+        :group_category,
         :is_archived, :is_private, :is_visible,
         :member_count,
         :created_at,
@@ -216,6 +219,27 @@ insert_sql["group_tag"] = """
         :tag
     )
 """
+insert_sql["group_category"] = """
+    insert or ignore into group_category (
+        id, 
+        created_at, updated_at,
+        text
+    ) values (
+        :id, 
+        :created_at, :updated_at,
+        :text
+    )
+"""
+
+
+def map_group_category_for_insert(category_json) -> Dict[str, List[Dict]]:
+    category = {
+        "id": category_json["id"],  # integer
+        "created_at": category_json["created_at"],  # text
+        "updated_at": category_json["updated_at"],  # text
+        "text": category_json["text"],  # text
+    }
+    return {"group_category": [category]}
 
 
 def map_group_for_insert(file_id, group_json) -> Dict[str, List[Dict]]:
@@ -233,6 +257,7 @@ def map_group_for_insert(file_id, group_json) -> Dict[str, List[Dict]]:
             "slug": group_json["slug"],  # text
             "url": group_json["url"],  # text
             "has_password": group_json["has_password"],  # integer (boolean)
+            "group_category": None,  # integer - filled out below
             "_file_id": file_id,  # text
     }
 
@@ -247,7 +272,16 @@ def map_group_for_insert(file_id, group_json) -> Dict[str, List[Dict]]:
     else:
         tags = []
 
+    category_json = group_json["group_category"]
+
+    if category_json is not None:
+        category = map_group_category_for_insert(category_json)["group_category"]
+        group["group_category"] = category[0]["id"]
+    else:
+        category = []
+
     return {
+        "group_category": category,
         "gab_group": [group],
         "group_tag": tags
     }
@@ -309,9 +343,27 @@ def map_media_for_insert(gab_id, media_json) -> Dict[str, List[Dict]]:
 # -------------------
 # ---     Tag     ---
 # -------------------
+insert_sql["gab_tag"] = """
+insert or ignore into gab_tag (
+    gab_id,
+    name, url
+) values (
+    :gab_id,
+    :name, :url
+)
+"""
 
-def map_gab_tag_for_insert(gab_id, tag_json):
-    pass
+
+def map_gab_tags_for_insert(gab_id, tags_json) -> Dict[str, List[Dict]]:
+    tags = []
+    for t in tags_json:
+        tags.append({
+            "gab_id": gab_id,  # text
+            "name": t["name"],  # text
+            "url": t["url"]  #text
+        })
+
+    return {"gab_tag": tags}
 
 
 # -------------------
@@ -330,6 +382,7 @@ insert or replace into gab (
     replies_count, reblogs_count, favourites_count,
     pinnable, pinnable_by_group,
     quote_of_id, has_quote,
+    reblog,
     content, rich_content, plain_markdown,
     account_id, group_id,
     _embedded_gab,
@@ -344,10 +397,20 @@ insert or replace into gab (
     :replies_count, :reblogs_count, :favourites_count,
     :pinnable, :pinnable_by_group,
     :quote_of_id, :has_quote,
+    :reblog,
     :content, :rich_content, :plain_markdown,
     :account_id, :group_id,
     :_embedded_gab,
     :_file_id
+)
+"""
+insert_sql["gab_mention"] = """
+insert or ignore into gab_mention (
+    gab_id, account_id,
+    url, acct
+) values (
+    :gab_id, :account_id,
+    :url, :acct
 )
 """
 
@@ -359,6 +422,18 @@ def add_mappings(to_extend: Dict[Any, List], addition: Dict[Any, List]):
     """
     for table in addition.keys():
         to_extend[table].extend(addition[table])
+
+
+def map_mentions_for_insert(gab_id, mentions_json) -> Dict[str, list]:
+    mentions = []
+    for mention in mentions_json or []:
+        mentions.append({
+            "gab_id": gab_id,
+            "account_id": mention["id"],  # text
+            "url": mention["url"],  # text
+            "acct": mention["acct"]  # text
+        })
+    return {"gab_mention": mentions}
 
 
 def map_gab_for_insert(file_id, gab_json, embedded_gab=False) -> Dict[str, list]:
@@ -392,10 +467,11 @@ def map_gab_for_insert(file_id, gab_json, embedded_gab=False) -> Dict[str, list]
         for table, mapping_list in media_mappings.items():
             mappings[table].extend(mapping_list)
 
-
     # Tags
+    add_mappings(mappings, map_gab_tags_for_insert(gab_id, gab_json["tags"]))
 
     # Mentions
+    add_mappings(mappings, map_mentions_for_insert(gab_id, gab_json["mentions"]))
 
     # Gab attributes
     mappings["gab"].append({

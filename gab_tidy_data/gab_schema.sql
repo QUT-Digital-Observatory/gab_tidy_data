@@ -9,7 +9,7 @@ create table _gab_tidy_data (
 );
 
 -- Update this whenever the schema is changed!!!
-insert into _gab_tidy_data values ("schema_version", "2021-07-20");
+insert into _gab_tidy_data values ("schema_version", "2021-08-03");
 
 -- Metadata table to track which files have been inserted into this database
 create table _inserted_files (
@@ -80,6 +80,14 @@ create table account_emoji (
     primary key (account_id, _file_id, emoji_shortcode)
 );
 
+create table group_category (
+    id integer,
+    created_at text,
+    updated_at text,
+    text text,
+    primary key (id)
+);
+
 create table gab_group ( -- note: sqlite does not allow naming a table "group"
     id text,
     title text,
@@ -94,7 +102,7 @@ create table gab_group ( -- note: sqlite does not allow naming a table "group"
     is_visible integer, -- boolean
     slug text,
     url text,
-    -- group_category
+    group_category integer references group_category (id),
     has_password integer, -- boolean
     _file_id integer references _inserted_files (id),
     primary key (id, _file_id)
@@ -154,9 +162,6 @@ create table gab (
     reblog text, -- Always null. Should be json if not null in theory. Does the Gab hashtag API only give original posts and no reblogs?
     account_id text references account (id),
     group_id text references gab_group (id),
-    mention_user_ids text, -- List (comma-separated) of account IDs of mentioned users
-    mention_usernames text -- List (comma-separated) of usernames of mentioned users
-    tags text, -- List (comma-separated) of tag names
     _embedded_gab integer, -- boolean - True means this gab was embedded in a gab that was in the search results, rather than being directly in the search results itself
     _file_id integer references _inserted_files (id), -- which result file this record was loaded from
     primary key (id, _file_id)
@@ -169,19 +174,21 @@ create table gab (
 -- - mention_user_ids, mention_usernames, tags - convenience columns duplicating
 --   information available in the gab_mention and gab_tag tables respectively
 
+-- This shouldn't change over time
 create table gab_tag (
     gab_id text references gab (id),
-    _file_id text references gab (_file_id),
     name text, -- tag name
     url text, -- Gab url for tag
-    primary key (gab_id, _file_id, name)
+    primary key (gab_id, name)
 );
 
+-- This shouldn't change over time
 create table gab_mention (
     gab_id text references gab (id),
     account_id text not null, -- User may or may not be contained in Account table
     url text, -- Corresponds to account.url
-    acct text -- Corresponds to account.acct
+    acct text, -- Corresponds to account.acct
+    primary key (gab_id, account_id)
 );
 
 create table gab_media_attachment (
