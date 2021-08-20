@@ -1,10 +1,10 @@
 from logging import getLogger
 import sqlite3
 import json
-from pathlib import Path
 from click import format_filename
 
 from typing import TextIO
+from importlib.resources import open_binary
 
 import gab_data_mapping as data_mapping
 
@@ -19,24 +19,11 @@ all_table_names = metadata_table_names + data_mapping.data_table_names
 
 
 def initialise_empty_database(db_connection: sqlite3.Connection):
-    sql_filename = "gab_schema.sql"
-    # TODO: assumes working directory :( :( :(
-    sql_filepath = Path("gab_tidy_data") / sql_filename
-    logger.debug(f"Initialising database from {str(sql_filepath)}")
-
-    with sql_filepath.open() as sql_file:
+    with open_binary('gab_tidy_data', 'gab_schema.sql') as sql_file:
+        logger.debug(f"Initialising database from SQL file {sql_file.name}")
         db_connection.executescript("\n".join(sql_file))
 
     db_connection.commit()
-
-    db = db_connection.cursor()  # todo: inconsistent with other db uses
-    # ".tables" only works in the sqlite shell!
-    db.execute("SELECT name FROM sqlite_master WHERE type='table';")
-    created_tables = db.fetchall()
-    logger.debug("Created database tables: " + str(created_tables))
-    assert len(created_tables) == len(all_table_names)
-    logger.info("The database schema has been initialised")
-    db.close()
 
 
 def validate_existing_database(db_connection: sqlite3.Connection):
@@ -77,8 +64,9 @@ def load_file_to_sqlite(json_fh: TextIO, db_connection):
     for gab_line in json_fh:
         try:
             gab_json = json.loads(gab_line)
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as e:
             failed_parsing.append(gab_line)
+            logger.debug(exc_info=e, msg="Failed to parse input line. Skipping line.")
             continue  # Skip lines with JSON parsing issues
 
         # Parse this gab, and any gabs embedded within this gab
@@ -107,9 +95,11 @@ def load_file_to_sqlite(json_fh: TextIO, db_connection):
     # Done with this file!
     db_connection.commit()
 
-    # todo better error message
     if len(failed_parsing) > 0:
-        logger.warning(f"Failed to parse {len(failed_parsing)} lines of filename. These lines have been skipped.")
+        logger.warning(
+            f"Failed to parse {len(failed_parsing)} lines of filename. These lines have "
+            f"been skipped. See debug logs for error information."
+        )
 
     logger.info(
         f"Finished loading file {friendly_filename}: {num_gabs_inserted} gabs "

@@ -7,6 +7,10 @@ install_requires = [
     'click>=8.0.1'
 ]
 
+extras_require = {
+    'test': ['pytest']
+}
+
 
 here = pathlib.Path(__file__).parent.resolve()
 
@@ -31,6 +35,7 @@ setup(
     packages=find_packages(),
     python_requires='>=3.8',
     install_requires=install_requires,
+    extras_require=extras_require,
     entry_points={
         "console_scripts": [
             "gab_tidy_data = gab_tidy_data.__main__:tidy_data"
