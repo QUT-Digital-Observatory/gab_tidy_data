@@ -446,8 +446,6 @@ def map_gab_for_insert(file_id, gab_json, embedded_gab=False) -> Dict[str, list]
     # Dict *ought* to retain key order - needed for foreign key integrity (if used)
     mappings = {t: [] for t in data_table_names}
 
-    assert set(mappings.keys()) == set(data_table_names)
-
     # Account
     account_mappings = map_account_for_insert(file_id, gab_id, gab_json["account"])
     account_id = account_mappings["account"][0]["id"]
@@ -518,6 +516,3 @@ def map_gab_for_insert(file_id, gab_json, embedded_gab=False) -> Dict[str, list]
         add_mappings(merged_mappings, mapped_gab)
 
     return merged_mappings
-
-
-# assert set(insert_sql.keys()) == set(data_table_names)
