@@ -2,35 +2,69 @@ import pytest
 from click.testing import CliRunner
 from gab_tidy_data.__main__ import gab_tidy_data as cli_main
 from pathlib import Path
+import sqlite3
 
 
 # Sample json files
 # Assumes tests are being run either from tests folder or repository base
 if Path.cwd().name == "tests":
-    sample_data_directory = Path("sample_data")
+    sample_data_directory = Path("sample_data").resolve()
 else:
-    sample_data_directory = Path("tests", "sample_data")
+    sample_data_directory = Path("tests", "sample_data").resolve()
 
-sample_json = list(map(lambda p: p.resolve(), sample_data_directory.glob("*.json")))
-assert len(sample_json) > 2
+sample_data = [
+    {
+        "path": sample_data_directory / "sample01.json",
+        "num_authors": 2,
+        "num_posts": 2
+    },
+    {
+        "path": sample_data_directory / "sample02.json",
+        "num_authors": 2,
+        "num_posts": 2
+    },
+    {
+        "path": sample_data_directory / "sample03.json",
+        "num_authors": 1,
+        "num_posts": 1
+    }
+]
 
 
-def test_cli(tmp_path):
+@pytest.mark.parametrize(
+    "samples_to_use",
+    [
+        ([]),
+        ([sample_data[0]]),
+        (sample_data[0:3])
+    ]
+)
+def test_cli(tmp_path, samples_to_use):
     runner = CliRunner()
 
-    # with runner.isolated_filesystem(temp_dir=tmp_path):
-    # Test with no json files
-    result = runner.invoke(cli_main, [str(tmp_path / "cli_test_0.db")])
-    assert result.exit_code == 0
-    assert (tmp_path / "cli_test_0.db").exists()
+    with runner.isolated_filesystem(temp_dir=tmp_path):
+        for s in samples_to_use:
+            # Ensures the test files are set up right before running
+            assert s["path"].exists()
 
-    # One json file
-    assert sample_json[0].exists()
-    result = runner.invoke(cli_main, [str(sample_json[0]), str(tmp_path / "cli_test_1.db")])
-    assert result.exit_code == 0
-    assert (tmp_path / "cli_test_1.db").exists()
+        data_path_strings = [str(s["path"]) for s in samples_to_use]
+        db_path = tmp_path / "cli_test.db"
 
-    # Multiple json files
-    result = runner.invoke(cli_main, [str(sample_json[0]), str(sample_json[1]), str(tmp_path / "cli_test_2.db")])
-    assert result.exit_code == 0
-    assert (tmp_path / "cli_test_2.db").exists()
+        args = data_path_strings + [str(db_path)]
+        result = runner.invoke(cli_main, args)
+        assert result.exit_code == 0
+
+        # Did it create the database?
+        assert db_path.exists()
+
+        # Is there the right amount of data in key tables?
+        with sqlite3.connect(db_path) as db_connection:
+            db = db_connection.cursor()
+
+            db.execute("select count(*) from account")
+            expected_authors = sum([s["num_authors"] for s in samples_to_use])
+            assert db.fetchone()[0] == expected_authors
+
+            db.execute("select count(*) from gab")
+            expected_posts = sum([s["num_posts"] for s in samples_to_use])
+            assert db.fetchone()[0] == expected_posts
