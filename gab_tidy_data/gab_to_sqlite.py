@@ -4,9 +4,9 @@ import json
 from click import format_filename
 
 from typing import TextIO
-from importlib.resources import open_binary
+from importlib.resources import open_text
 
-import gab_data_mapping as data_mapping
+import gab_tidy_data.gab_data_mapping as data_mapping
 
 
 logger = getLogger(__name__)
@@ -19,7 +19,7 @@ all_table_names = metadata_table_names + data_mapping.data_table_names
 
 
 def initialise_empty_database(db_connection: sqlite3.Connection):
-    with open_binary('gab_tidy_data', 'gab_schema.sql') as sql_file:
+    with open_text('gab_tidy_data', 'gab_schema.sql') as sql_file:
         logger.debug(f"Initialising database from SQL file {sql_file.name}")
         db_connection.executescript("\n".join(sql_file))
 

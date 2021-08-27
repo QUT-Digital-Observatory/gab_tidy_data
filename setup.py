@@ -38,7 +38,7 @@ setup(
     extras_require=extras_require,
     entry_points={
         "console_scripts": [
-            "gab_tidy_data = gab_tidy_data.__main__:tidy_data"
+            "gab_tidy_data = gab_tidy_data.__main__:gab_tidy_data"
         ]
     }
 )

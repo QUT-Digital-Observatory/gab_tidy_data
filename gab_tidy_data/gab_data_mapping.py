@@ -47,6 +47,9 @@ data_table_names = [
 ]
 insert_sql = dict()
 
+# TODO
+insert_sql["gab_emoji"] = ""
+
 # -------------------
 # ---    Emoji    ---
 # -------------------

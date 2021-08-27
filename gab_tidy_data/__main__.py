@@ -3,7 +3,7 @@ import logging
 import sqlite3
 from os import path
 
-from gab_to_sqlite import initialise_empty_database, validate_existing_database, load_file_to_sqlite
+from gab_tidy_data.gab_to_sqlite import initialise_empty_database, validate_existing_database, load_file_to_sqlite
 
 logging.basicConfig(filename="gab_tidy_data.log", level=logging.INFO)
 
