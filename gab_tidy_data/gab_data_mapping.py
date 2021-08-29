@@ -47,8 +47,6 @@ data_table_names = [
 ]
 insert_sql = dict()
 
-# TODO
-insert_sql["gab_emoji"] = ""
 
 # -------------------
 # ---    Emoji    ---
@@ -416,6 +414,13 @@ insert or ignore into gab_mention (
     :url, :acct
 )
 """
+insert_sql["gab_emoji"] = """
+insert or ignore into gab_emoji (
+    gab_id, emoji_shortcode
+) values (
+    :gab_id, :emoji_shortcode
+)
+"""
 
 
 def add_mappings(to_extend: Dict[Any, List], addition: Dict[Any, List]):
@@ -473,6 +478,15 @@ def map_gab_for_insert(file_id, gab_json, embedded_gab=False) -> Dict[str, list]
 
     # Mentions
     add_mappings(mappings, map_mentions_for_insert(gab_id, gab_json["mentions"]))
+
+    # Emoji
+    emoji = map_emoji_list_for_insert(gab_json["emojis"])["emoji"]
+    account_emoji = []
+    for e in emoji:
+        account_emoji.append({
+            "account_id": gab_id,
+            "emoji_shortcode": e["shortcode"]
+        })
 
     # Gab attributes
     mappings["gab"].append({
