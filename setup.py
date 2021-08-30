@@ -8,7 +8,8 @@ install_requires = [
 ]
 
 extras_require = {
-    'test': ['pytest']
+    'test': ['pytest', 'nox'],
+    'develop': ['nox', 'flake8']
 }
 
 
