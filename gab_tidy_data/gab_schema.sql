@@ -9,7 +9,7 @@ create table _gab_tidy_data (
 );
 
 -- Update this whenever the schema is changed!!!
-insert into _gab_tidy_data values ("schema_version", "2021-08-03");
+insert into _gab_tidy_data values ("schema_version", "2021-08-30");
 
 -- Metadata table to track which files have been inserted into this database
 create table _inserted_files (
@@ -133,6 +133,22 @@ create table media_attachment (
 -- Fields omitted:
 -- - meta object containing media dimensions etc
 
+-- Does this change over time?
+create table card (
+    id text primary key,
+    url text,
+    title text,
+    description text,
+    type text,
+    provider_name text,
+    provider_url text,
+    html text,
+    image_url text,
+    embed_url text,
+    updated_at text
+);
+-- fields omitted:
+-- - display fields: width and height
 
 create table gab (
     id text, -- Gab-provided id
@@ -162,6 +178,7 @@ create table gab (
     reblog text, -- Always null. Should be json if not null in theory. Does the Gab hashtag API only give original posts and no reblogs?
     account_id text references account (id),
     group_id text references gab_group (id),
+    card_id text references card (id),
     _embedded_gab integer, -- boolean - True means this gab was embedded in a gab that was in the search results, rather than being directly in the search results itself
     _file_id integer references _inserted_files (id), -- which result file this record was loaded from
     primary key (id, _file_id)
@@ -215,6 +232,6 @@ create table gab_emoji (
 
 create view gab_unique as select * from gab group by id;
 
-create view author_unique as select * from author group by id;
+create view account_unique as select * from account group by id;
 
 create view gab_group_unique as select * from gab_group group by id;

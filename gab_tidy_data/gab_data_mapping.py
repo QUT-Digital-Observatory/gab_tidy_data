@@ -39,6 +39,7 @@ data_table_names = [
     'gab_group',
     'group_tag',
     'media_attachment',
+    'card',
     'gab',
     'gab_mention',
     'gab_media_attachment',
@@ -368,6 +369,48 @@ def map_gab_tags_for_insert(gab_id, tags_json) -> Dict[str, List[Dict]]:
 
 
 # -------------------
+# ---    Card     ---
+# -------------------
+insert_sql["card"] = """
+insert or ignore into card (
+    id, url, title,
+    description,
+    type,
+    provider_name, provider_url,
+    html,
+    image_url, embed_url,
+    updated_at
+) values (
+    :id, :url, :title,
+    :description,
+    :type,
+    :provider_name, :provider_url,
+    :html,
+    :image_url, :embed_url,
+    :updated_at
+)
+"""
+
+
+def map_card_for_insert(card_json) -> Dict[str, List[Dict]]:
+    card = {
+        "id": card_json["id"],  # text
+        "url": card_json["url"],  # text
+        "title": card_json["title"],  # text
+        "description": card_json["description"],  # text
+        "type": card_json["type"],  # text
+        "provider_name": card_json["provider_name"],  # text
+        "provider_url": card_json["provider_url"],  # text
+        "html": card_json["html"],  # text
+        "image_url": card_json["image"],  # text
+        "embed_url": card_json["embed_url"],  # text
+        "updated_at": card_json["updated_at"]  # text
+    }
+
+    return {"card": [card]}
+
+
+# -------------------
 # ---     Gab     ---
 # -------------------
 
@@ -385,7 +428,7 @@ insert or replace into gab (
     quote_of_id, has_quote,
     reblog,
     content, rich_content, plain_markdown,
-    account_id, group_id,
+    account_id, group_id, card_id,
     _embedded_gab,
     _file_id
 ) values (
@@ -400,7 +443,7 @@ insert or replace into gab (
     :quote_of_id, :has_quote,
     :reblog,
     :content, :rich_content, :plain_markdown,
-    :account_id, :group_id,
+    :account_id, :group_id, :card_id,
     :_embedded_gab,
     :_file_id
 )
@@ -480,13 +523,23 @@ def map_gab_for_insert(file_id, gab_json, embedded_gab=False) -> Dict[str, list]
     add_mappings(mappings, map_mentions_for_insert(gab_id, gab_json["mentions"]))
 
     # Emoji
-    emoji = map_emoji_list_for_insert(gab_json["emojis"])["emoji"]
-    account_emoji = []
-    for e in emoji:
-        account_emoji.append({
-            "account_id": gab_id,
+    emoji = map_emoji_list_for_insert(gab_json["emojis"])
+    gab_emoji = []
+    for e in emoji["emoji"]:
+        gab_emoji.append({
+            "gab_id": gab_id,
             "emoji_shortcode": e["shortcode"]
         })
+    add_mappings(mappings, emoji)
+    add_mappings(mappings, {"gab_emoji": gab_emoji})
+
+    # Card
+    if gab_json["card"] is not None:
+        card = map_card_for_insert(gab_json["card"])
+        add_mappings(mappings, card)
+        card_id = card["card"][0]["id"]
+    else:
+        card_id = None
 
     # Gab attributes
     mappings["gab"].append({
@@ -515,6 +568,7 @@ def map_gab_for_insert(file_id, gab_json, embedded_gab=False) -> Dict[str, list]
         "reblog": gab_json["reblog"],  # text - may need to be parsed as embedded gab
         "account_id": account_id,  # text
         "group_id": group_id,  # text
+        "card_id": card_id,  # text
         "_embedded_gab": embedded_gab,  # integer (boolean)
         "_file_id": file_id  # integer
     })
