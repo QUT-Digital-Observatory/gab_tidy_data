@@ -31,27 +31,26 @@ virtualenv guide)
    
 3. Ensure you are using an appropriate Python or Anaconda virtual environment
 
-4. Install the requirements by running:
+4. Install Gab Tidy Data and its requirements by running:
 
-   `python -m pip install -r requirements.txt`
+   `python -m pip install .`
 
 5. Run the following to check that your environment is ready to run Gab Tidy Data:
    
-    `python gab_tidy_data --help`
+    `gab_tidy_data --help`
 
 ### Usage
 
 In your command line, ensuring you are using the Python or Anaconda virtual environment
-you used to install Gab Tidy Data requirements, and that you are in the folder 
-containing `setup.py` and this readme, you can run `python gab_tidy_data`:
+you used to install Gab Tidy Data requirements, you can run the `gab_tidy_data` command:
 
 ```
-python gab_tidy_data [data_file_1.jsonl] [data_file_2.jsonl] [database_name.db]
+gab_tidy_data [data_file_1.jsonl] [data_file_2.jsonl] [database_name.db]
 ```
 
 You may run the command with as many or as few JSON files (`.json` or `.jsonl`) as you
 like, and they will all be loaded into the database specified. The database filename
-must be the last argument provided to the `python gab_tidy_data` command.
+must be the last argument provided to the `gab_tidy_data` command.
 
 
 [Garc]: https://github.com/ChrisStevens/garc
