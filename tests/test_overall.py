@@ -6,11 +6,7 @@ import sqlite3
 
 
 # Sample json files
-# Assumes tests are being run either from tests folder or repository base
-if Path.cwd().name == "tests":
-    sample_data_directory = Path("sample_data").resolve()
-else:
-    sample_data_directory = Path("tests", "sample_data").resolve()
+sample_data_directory = Path(__file__).parent.resolve() / "sample_data"
 
 sample_data = [
     {

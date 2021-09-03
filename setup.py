@@ -41,5 +41,7 @@ setup(
         "console_scripts": [
             "gab_tidy_data = gab_tidy_data.__main__:gab_tidy_data"
         ]
-    }
+    },
+    include_package_data=True,
+    package_data={'gab_tidy_data': ['gab_tidy_data/gab_schema.sql']},
 )
