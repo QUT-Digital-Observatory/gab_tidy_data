@@ -17,7 +17,7 @@ create table _inserted_files (
     filename string not null,
     num_gabs_inserted integer,  -- null may indicate unsuccessful insert
     num_parsing_failures integer,  -- counts lines of input file, not gabs
-    inserted_at real,
+    inserted_at real,  -- time in UTC (julianday format, see sqlite docs)
     inserted_by_version text  -- stores the gab_tidy_data tool version
 );
 

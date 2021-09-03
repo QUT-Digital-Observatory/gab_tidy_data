@@ -2,8 +2,9 @@ import click
 import logging
 import sqlite3
 from os import path
+import datetime as dt
 
-from gab_tidy_data.gab_to_sqlite import initialise_empty_database, validate_existing_database, load_file_to_sqlite
+import gab_tidy_data.gab_to_sqlite as gts
 
 logging.basicConfig(filename="gab_tidy_data.log", level=logging.INFO)
 
@@ -30,15 +31,30 @@ def gab_tidy_data(json_files, database_filename, log_level):
         # Check for database and initialise if needed
         if db_is_new:
             logger.debug("New database created")
-            initialise_empty_database(db_connection)
+            gts.initialise_empty_database(db_connection)
         else:
             logger.debug("Connected to existing database")
-            validate_existing_database(database_filename)
+            gts.validate_existing_database(database_filename)
+
+        time_started = dt.datetime.utcnow()
 
         for json_file in json_files:
-            load_file_to_sqlite(json_file, db_connection)
+            added, fails = gts.load_file_to_sqlite(json_file, db_connection)
 
-    # click.echo(f"Successfully parsed {files_successful} JSON files, resulting in {num_gab_rows} gabs in database {database_filename}")
+            click.echo(
+                f"- {json_file.name} loaded: {added} posts added; {fails} failed to add"
+            )
+
+        files_added = gts.fetch_db_contents(db_connection, time_started)
+
+    total_posts_added = sum([n for _, n, _ in files_added])
+    total_parse_fails = sum([n for _, _, n in files_added])
+
+    click.echo(
+        f"Parsed {len(files_added)} JSON files, resulting in {total_posts_added} posts "
+        f"added to database {database_filename}. {total_parse_fails} posts failed to "
+        "parse."
+    )
 
 
 if __name__ == '__main__':

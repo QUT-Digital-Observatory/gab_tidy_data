@@ -3,8 +3,9 @@ import sqlite3
 import json
 from click import format_filename
 
-from typing import TextIO
+from typing import TextIO, Optional, Tuple
 from importlib.resources import open_text
+import datetime as dt
 
 import gab_tidy_data.gab_data_mapping as data_mapping
 
@@ -37,7 +38,7 @@ def validate_existing_database(db_connection: sqlite3.Connection):
 
 
 # todo: what would be useful to return???
-def load_file_to_sqlite(json_fh: TextIO, db_connection):
+def load_file_to_sqlite(json_fh: TextIO, db_connection) -> Tuple[int, int]:
     """
     Parse and load Garc output json file into database using data mappings
 
@@ -45,6 +46,10 @@ def load_file_to_sqlite(json_fh: TextIO, db_connection):
     objects.
 
     Note: the "fh" in "json_fh" is short for "file handler"
+
+    Returns (number of gabs inserted, number of posts which failed to parse). The total
+    number of posts may be greater than the number of lines in the json file, as
+    embedded gabs are also counted.
     """
     db = db_connection.cursor()
     # Filename string to use for logging, output, metadata etc
@@ -73,7 +78,8 @@ def load_file_to_sqlite(json_fh: TextIO, db_connection):
         gab_mappings = data_mapping.map_gab_for_insert(file_id, gab_json)
 
         for table, mappings in gab_mappings.items():
-            if len(mappings) == 0 or len(mappings[0]) == 0: # such a hack - why is group coming up as [[]]?
+            if len(mappings) == 0 or len(mappings[0]) == 0:
+                # such a hack - why is group coming up as [[]]?
                 continue
             elif not isinstance(mappings, list):
                 db.execute(data_mapping.insert_sql[table], mappings)
@@ -88,22 +94,53 @@ def load_file_to_sqlite(json_fh: TextIO, db_connection):
     db.execute("""
         update _inserted_files 
         set num_gabs_inserted = :num_gabs_inserted,
-            num_parsing_failures = :num_parsing_failures
+            num_parsing_failures = :num_parsing_failures,
+            inserted_at = :now
         where id = :file_id
-    """, {"file_id": file_id, "num_gabs_inserted": num_gabs_inserted, "num_parsing_failures": len(failed_parsing)})
+    """, {
+        "file_id": file_id,
+        "num_gabs_inserted": num_gabs_inserted,
+        "num_parsing_failures": len(failed_parsing),
+        "now": dt.datetime.utcnow()
+    })
 
     # Done with this file!
     db_connection.commit()
 
     if len(failed_parsing) > 0:
         logger.warning(
-            f"Failed to parse {len(failed_parsing)} lines of filename. These lines have "
-            f"been skipped. See debug logs for error information."
+            f"Failed to parse {len(failed_parsing)} lines of filename. These lines have"
+            f" been skipped. See debug logs for error information."
         )
 
     logger.info(
         f"Finished loading file {friendly_filename}: {num_gabs_inserted} gabs "
-        f"sucessfully added; {len(failed_parsing)} gabs skipped due to parsing "
+        f"successfully added; {len(failed_parsing)} gabs skipped due to parsing "
         f"errors"
     )
 
+    return num_gabs_inserted, len(failed_parsing)
+
+
+def fetch_db_contents(db_connection, since: Optional[dt.datetime] = None):
+    """
+    Gets the file insertion metadata from the database, including numbers of posts
+    entered by each file. Can optionally add a since date to only return files at or
+    after that time. All times are in UTC.
+
+    Returns a list of inserted files: (filename, number of posts inserted, number of
+    posts which failed to parse)
+    """
+    db = db_connection.cursor()
+
+    date_clause = "where inserted_at >= julianday(:since)" if since else ""
+
+    db.execute(
+        """
+            select filename, num_gabs_inserted, num_parsing_failures 
+            from _inserted_files
+        """ + date_clause,
+        {"since": since}
+    )
+
+    return db.fetchall()
