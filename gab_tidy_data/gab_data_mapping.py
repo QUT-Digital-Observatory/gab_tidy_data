@@ -28,6 +28,11 @@ from typing import Dict, List, Any
 
 logger = getLogger(__name__)
 
+
+# Database schema version - must be consistent with gab_schema.sql
+schema_version = "2021-08-30"
+
+
 # Tables are ordered by how data should be inserted if foreign key integrity were to be
 # enforced
 data_table_names = [

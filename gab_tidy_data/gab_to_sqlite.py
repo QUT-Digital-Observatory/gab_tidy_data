@@ -27,17 +27,6 @@ def initialise_empty_database(db_connection: sqlite3.Connection):
     db_connection.commit()
 
 
-def validate_existing_database(db_connection: sqlite3.Connection):
-    """
-    Does not validate schema or state of database in detail, just checks suitability
-    for use - namely, that the schema version matches.
-    """
-    # todo: handle case if db file exists but no tables exist
-    # todo: handle schema version
-    pass
-
-
-# todo: what would be useful to return???
 def load_file_to_sqlite(json_fh: TextIO, db_connection) -> Tuple[int, int]:
     """
     Parse and load Garc output json file into database using data mappings
@@ -144,3 +133,22 @@ def fetch_db_contents(db_connection, since: Optional[dt.datetime] = None):
     )
 
     return db.fetchall()
+
+
+def schema_is_current(db_connection: sqlite3.Connection) -> bool:
+    """
+    Given an existing database, checks to see whether the schema version in the existing
+    database matches the schema version for this version of Gab Tidy Data.
+    """
+    db = db_connection.cursor()
+
+    db.execute(
+        """
+        select metadata_value from _gab_tidy_data 
+        where metadata_key = 'schema_version'
+        """
+    )
+
+    db_schema_version = db.fetchone()[0]
+
+    return db_schema_version == data_mapping.schema_version

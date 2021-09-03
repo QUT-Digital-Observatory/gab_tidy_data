@@ -34,7 +34,14 @@ def gab_tidy_data(json_files, database_filename, log_level):
             gts.initialise_empty_database(db_connection)
         else:
             logger.debug("Connected to existing database")
-            gts.validate_existing_database(database_filename)
+            if not gts.schema_is_current(database_filename):
+                raise click.UsageError(
+                    f"Database {database_filename} already exists, and uses a database "
+                    "schema that is a different version from the schema in the version "
+                    "of Gab Tidy Data you are currently using. You will need to reload"
+                    "your data (including any files previously loaded into "
+                    f"{database_filename}) into a new database file."
+                )
 
         time_started = dt.datetime.utcnow()
 
