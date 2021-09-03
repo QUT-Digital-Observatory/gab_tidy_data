@@ -34,8 +34,12 @@ def gab_tidy_data(json_files, database_filename, log_level):
             gts.initialise_empty_database(db_connection)
         else:
             logger.debug("Connected to existing database")
-            if not gts.schema_is_current(database_filename):
-                raise click.UsageError(
+            if not gts.schema_is_current(db_connection):
+                # Sometimes the error message comes before the "Loading" echo statement
+                # above and it's confusing to read. The following echo should confirm to
+                # the user that their files weren't loaded.
+                click.echo("Files not loaded.")
+                raise click.ClickException(
                     f"Database {database_filename} already exists, and uses a database "
                     "schema that is a different version from the schema in the version "
                     "of Gab Tidy Data you are currently using. You will need to reload"
