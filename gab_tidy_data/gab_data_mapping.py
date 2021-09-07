@@ -36,20 +36,20 @@ schema_version = "2021-08-30"
 # Tables are ordered by how data should be inserted if foreign key integrity were to be
 # enforced
 data_table_names = [
-    'emoji',
-    'account',
-    'account_fields',
-    'account_emoji',
-    'group_category',
-    'gab_group',
-    'group_tag',
-    'media_attachment',
-    'card',
-    'gab',
-    'gab_mention',
-    'gab_media_attachment',
-    'gab_tag',
-    'gab_emoji'
+    "emoji",
+    "account",
+    "account_fields",
+    "account_emoji",
+    "group_category",
+    "gab_group",
+    "group_tag",
+    "media_attachment",
+    "card",
+    "gab",
+    "gab_mention",
+    "gab_media_attachment",
+    "gab_tag",
+    "gab_emoji",
 ]
 insert_sql = dict()
 
@@ -57,7 +57,9 @@ insert_sql = dict()
 # -------------------
 # ---    Emoji    ---
 # -------------------
-insert_sql["emoji"] = """
+insert_sql[
+    "emoji"
+] = """
     insert or ignore into emoji (
         shortcode,
         url, static_url
@@ -73,17 +75,20 @@ def map_emoji_list_for_insert(emoji_json) -> Dict[str, List[Dict]]:
         {
             "shortcode": emoji["shortcode"],
             "url": emoji["url"],
-            "static_url": emoji["static_url"]
-        } for emoji in emoji_json
+            "static_url": emoji["static_url"],
+        }
+        for emoji in emoji_json
     ]
-    return {'emoji': mapped}
+    return {"emoji": mapped}
 
 
 # -------------------
 # ---   Account   ---
 # -------------------
 
-insert_sql["account"] = """
+insert_sql[
+    "account"
+] = """
     insert or replace into account (
         id, username, acct, display_name,
         locked, bot,
@@ -105,7 +110,9 @@ insert_sql["account"] = """
         :_file_id
     )
 """
-insert_sql["account_emoji"] = """
+insert_sql[
+    "account_emoji"
+] = """
     insert or ignore into account_emoji (
         account_id, _file_id,
         emoji_shortcode
@@ -114,7 +121,9 @@ insert_sql["account_emoji"] = """
         :emoji_shortcode
     )
 """
-insert_sql["account_fields"] = """
+insert_sql[
+    "account_fields"
+] = """
     insert or ignore into account_fields (
         account_id, _file_id,
         ordering,
@@ -161,34 +170,38 @@ def map_account_for_insert(file_id, gab_id, account_json) -> Dict[str, List[Dict
         "is_verified": account_json["is_verified"],  # integer (boolean)
         "is_donor": account_json["is_donor"],  # integer (boolean)
         "is_investor": account_json["is_investor"],  # integer (boolean)
-        "_file_id": file_id
+        "_file_id": file_id,
     }
 
     account_fields = []
     for i, field in enumerate(account_json["fields"], start=1):
-        account_fields.append({
-            "account_id": account["id"],
-            "_file_id": file_id,
-            "ordering": i,
-            "name": field["name"],
-            "value": field["value"],
-            "verified_at": field["verified_at"]
-        })
+        account_fields.append(
+            {
+                "account_id": account["id"],
+                "_file_id": file_id,
+                "ordering": i,
+                "name": field["name"],
+                "value": field["value"],
+                "verified_at": field["verified_at"],
+            }
+        )
 
     emoji = map_emoji_list_for_insert(account_json["emojis"])["emoji"]
     account_emoji = []
     for e in emoji:
-        account_emoji.append({
-            "account_id": account["id"],
-            "_file_id": file_id,
-            "emoji_shortcode": e["shortcode"]
-        })
+        account_emoji.append(
+            {
+                "account_id": account["id"],
+                "_file_id": file_id,
+                "emoji_shortcode": e["shortcode"],
+            }
+        )
 
     return {
         "account": [account],
         "emoji": emoji,
         "account_emoji": account_emoji,
-        "account_fields": account_fields
+        "account_fields": account_fields,
     }
 
 
@@ -196,7 +209,9 @@ def map_account_for_insert(file_id, gab_id, account_json) -> Dict[str, List[Dict
 # ---    Group    ---
 # -------------------
 
-insert_sql["gab_group"] = """
+insert_sql[
+    "gab_group"
+] = """
     insert or replace into gab_group (
         id, title, slug, url,
         description, description_html, cover_image_url,
@@ -217,7 +232,9 @@ insert_sql["gab_group"] = """
         :_file_id
     )
 """
-insert_sql["group_tag"] = """
+insert_sql[
+    "group_tag"
+] = """
     insert or ignore into group_tag (
         group_id, _file_id,
         tag
@@ -226,7 +243,9 @@ insert_sql["group_tag"] = """
         :tag
     )
 """
-insert_sql["group_category"] = """
+insert_sql[
+    "group_category"
+] = """
     insert or ignore into group_category (
         id, 
         created_at, updated_at,
@@ -251,30 +270,27 @@ def map_group_category_for_insert(category_json) -> Dict[str, List[Dict]]:
 
 def map_group_for_insert(file_id, group_json) -> Dict[str, List[Dict]]:
     group = {
-            "id": group_json["id"],  # text
-            "title": group_json["title"],  # text
-            "description": group_json["description"],  # text
-            "description_html": group_json["description_html"],  # text
-            "cover_image_url": group_json["cover_image_url"],  # text
-            "is_archived": group_json["is_archived"],  # integer (boolean)
-            "member_count": group_json["member_count"],  # integer
-            "created_at": group_json["created_at"],  # text
-            "is_private": group_json["is_private"],  # integer (boolean)
-            "is_visible": group_json["is_visible"],  # integer (boolean)
-            "slug": group_json["slug"],  # text
-            "url": group_json["url"],  # text
-            "has_password": group_json["has_password"],  # integer (boolean)
-            "group_category": None,  # integer - filled out below
-            "_file_id": file_id,  # text
+        "id": group_json["id"],  # text
+        "title": group_json["title"],  # text
+        "description": group_json["description"],  # text
+        "description_html": group_json["description_html"],  # text
+        "cover_image_url": group_json["cover_image_url"],  # text
+        "is_archived": group_json["is_archived"],  # integer (boolean)
+        "member_count": group_json["member_count"],  # integer
+        "created_at": group_json["created_at"],  # text
+        "is_private": group_json["is_private"],  # integer (boolean)
+        "is_visible": group_json["is_visible"],  # integer (boolean)
+        "slug": group_json["slug"],  # text
+        "url": group_json["url"],  # text
+        "has_password": group_json["has_password"],  # integer (boolean)
+        "group_category": None,  # integer - filled out below
+        "_file_id": file_id,  # text
     }
 
     if group_json["tags"] is not None:
         tags = [
-            {
-                "group_id": group["id"],
-                "_file_id": file_id,
-                "tag": tag
-            } for tag in group_json["tags"]
+            {"group_id": group["id"], "_file_id": file_id, "tag": tag}
+            for tag in group_json["tags"]
         ]
     else:
         tags = []
@@ -287,18 +303,16 @@ def map_group_for_insert(file_id, group_json) -> Dict[str, List[Dict]]:
     else:
         category = []
 
-    return {
-        "group_category": category,
-        "gab_group": [group],
-        "group_tag": tags
-    }
+    return {"group_category": category, "gab_group": [group], "group_tag": tags}
 
 
 # ------------------------
 # --- Media Attachment ---
 # ------------------------
 
-insert_sql["media_attachment"] = """
+insert_sql[
+    "media_attachment"
+] = """
     insert or replace into media_attachment (
         id,
         type, file_content_type,
@@ -313,7 +327,9 @@ insert_sql["media_attachment"] = """
         :blurhash
     )
 """
-insert_sql["gab_media_attachment"] = """
+insert_sql[
+    "gab_media_attachment"
+] = """
     insert or ignore into gab_media_attachment (
         gab_id,
         media_attachment_id
@@ -339,18 +355,20 @@ def map_media_for_insert(gab_id, media_json) -> Dict[str, List[Dict]]:
     }
     gab_media_relationship_mapping = {
         "gab_id": gab_id,  # text
-        "media_attachment_id": media_json["id"]  # text
+        "media_attachment_id": media_json["id"],  # text
     }
     return {
         "media_attachment": [media_field_mapping],
-        "gab_media_attachment": [gab_media_relationship_mapping]
+        "gab_media_attachment": [gab_media_relationship_mapping],
     }
 
 
 # -------------------
 # ---     Tag     ---
 # -------------------
-insert_sql["gab_tag"] = """
+insert_sql[
+    "gab_tag"
+] = """
 insert or ignore into gab_tag (
     gab_id,
     name, url
@@ -364,11 +382,13 @@ insert or ignore into gab_tag (
 def map_gab_tags_for_insert(gab_id, tags_json) -> Dict[str, List[Dict]]:
     tags = []
     for t in tags_json:
-        tags.append({
-            "gab_id": gab_id,  # text
-            "name": t["name"],  # text
-            "url": t["url"]  #text
-        })
+        tags.append(
+            {
+                "gab_id": gab_id,  # text
+                "name": t["name"],  # text
+                "url": t["url"],  # text
+            }
+        )
 
     return {"gab_tag": tags}
 
@@ -376,7 +396,9 @@ def map_gab_tags_for_insert(gab_id, tags_json) -> Dict[str, List[Dict]]:
 # -------------------
 # ---    Card     ---
 # -------------------
-insert_sql["card"] = """
+insert_sql[
+    "card"
+] = """
 insert or ignore into card (
     id, url, title,
     description,
@@ -409,7 +431,7 @@ def map_card_for_insert(card_json) -> Dict[str, List[Dict]]:
         "html": card_json["html"],  # text
         "image_url": card_json["image"],  # text
         "embed_url": card_json["embed_url"],  # text
-        "updated_at": card_json["updated_at"]  # text
+        "updated_at": card_json["updated_at"],  # text
     }
 
     return {"card": [card]}
@@ -420,7 +442,9 @@ def map_card_for_insert(card_json) -> Dict[str, List[Dict]]:
 # -------------------
 
 # missing reblog, mention_user_ids, mention_usernames
-insert_sql["gab"] = """
+insert_sql[
+    "gab"
+] = """
 insert or replace into gab (
     id,
     created_at, revised_at, expires_at,
@@ -453,7 +477,9 @@ insert or replace into gab (
     :_file_id
 )
 """
-insert_sql["gab_mention"] = """
+insert_sql[
+    "gab_mention"
+] = """
 insert or ignore into gab_mention (
     gab_id, account_id,
     url, acct
@@ -462,7 +488,9 @@ insert or ignore into gab_mention (
     :url, :acct
 )
 """
-insert_sql["gab_emoji"] = """
+insert_sql[
+    "gab_emoji"
+] = """
 insert or ignore into gab_emoji (
     gab_id, emoji_shortcode
 ) values (
@@ -483,12 +511,14 @@ def add_mappings(to_extend: Dict[Any, List], addition: Dict[Any, List]):
 def map_mentions_for_insert(gab_id, mentions_json) -> Dict[str, list]:
     mentions = []
     for mention in mentions_json or []:
-        mentions.append({
-            "gab_id": gab_id,
-            "account_id": mention["id"],  # text
-            "url": mention["url"],  # text
-            "acct": mention["acct"]  # text
-        })
+        mentions.append(
+            {
+                "gab_id": gab_id,
+                "account_id": mention["id"],  # text
+                "url": mention["url"],  # text
+                "acct": mention["acct"],  # text
+            }
+        )
     return {"gab_mention": mentions}
 
 
@@ -531,10 +561,7 @@ def map_gab_for_insert(file_id, gab_json, embedded_gab=False) -> Dict[str, list]
     emoji = map_emoji_list_for_insert(gab_json["emojis"])
     gab_emoji = []
     for e in emoji["emoji"]:
-        gab_emoji.append({
-            "gab_id": gab_id,
-            "emoji_shortcode": e["shortcode"]
-        })
+        gab_emoji.append({"gab_id": gab_id, "emoji_shortcode": e["shortcode"]})
     add_mappings(mappings, emoji)
     add_mappings(mappings, {"gab_emoji": gab_emoji})
 
@@ -547,42 +574,48 @@ def map_gab_for_insert(file_id, gab_json, embedded_gab=False) -> Dict[str, list]
         card_id = None
 
     # Gab attributes
-    mappings["gab"].append({
-        "id": gab_id,  # text
-        "created_at": gab_json["created_at"],  # text
-        "revised_at": gab_json["revised_at"],  # text
-        "in_reply_to_id": gab_json["in_reply_to_id"],  # text
-        "in_reply_to_account_id": gab_json["in_reply_to_account_id"],  # text
-        "sensitive": gab_json["sensitive"],  # integer (boolean)
-        "spoiler_text": gab_json["spoiler_text"],  # text
-        "visibility": gab_json["visibility"],  # text
-        "language": gab_json["language"],  # text
-        "uri": gab_json["uri"],  # text
-        "url": gab_json["url"],  # text
-        "replies_count": gab_json["replies_count"],  # integer
-        "reblogs_count": gab_json["reblogs_count"],  # integer
-        "pinnable": gab_json["pinnable"],  # integer (boolean)
-        "pinnable_by_group": gab_json["pinnable_by_group"],  # integer (boolean)
-        "favourites_count": gab_json["favourites_count"],  # integer
-        "quote_of_id": gab_json["quote_of_id"],  # text
-        "expires_at": gab_json["expires_at"],  # text
-        "has_quote": gab_json["has_quote"],  # integer (boolean)
-        "content": gab_json["content"],  # text
-        "rich_content": gab_json["rich_content"],  # text
-        "plain_markdown": gab_json["plain_markdown"],  # text
-        "reblog": gab_json["reblog"],  # text - may need to be parsed as embedded gab
-        "account_id": account_id,  # text
-        "group_id": group_id,  # text
-        "card_id": card_id,  # text
-        "_embedded_gab": embedded_gab,  # integer (boolean)
-        "_file_id": file_id  # integer
-    })
+    mappings["gab"].append(
+        {
+            "id": gab_id,  # text
+            "created_at": gab_json["created_at"],  # text
+            "revised_at": gab_json["revised_at"],  # text
+            "in_reply_to_id": gab_json["in_reply_to_id"],  # text
+            "in_reply_to_account_id": gab_json["in_reply_to_account_id"],  # text
+            "sensitive": gab_json["sensitive"],  # integer (boolean)
+            "spoiler_text": gab_json["spoiler_text"],  # text
+            "visibility": gab_json["visibility"],  # text
+            "language": gab_json["language"],  # text
+            "uri": gab_json["uri"],  # text
+            "url": gab_json["url"],  # text
+            "replies_count": gab_json["replies_count"],  # integer
+            "reblogs_count": gab_json["reblogs_count"],  # integer
+            "pinnable": gab_json["pinnable"],  # integer (boolean)
+            "pinnable_by_group": gab_json["pinnable_by_group"],  # integer (boolean)
+            "favourites_count": gab_json["favourites_count"],  # integer
+            "quote_of_id": gab_json["quote_of_id"],  # text
+            "expires_at": gab_json["expires_at"],  # text
+            "has_quote": gab_json["has_quote"],  # integer (boolean)
+            "content": gab_json["content"],  # text
+            "rich_content": gab_json["rich_content"],  # text
+            "plain_markdown": gab_json["plain_markdown"],  # text
+            "reblog": gab_json[
+                "reblog"
+            ],  # text - may need to be parsed as embedded gab
+            "account_id": account_id,  # text
+            "group_id": group_id,  # text
+            "card_id": card_id,  # text
+            "_embedded_gab": embedded_gab,  # integer (boolean)
+            "_file_id": file_id,  # integer
+        }
+    )
 
     embedded_gabs = []
 
     # process quotes
     if gab_json["quote"] is not None:
-        embedded_gabs.append(map_gab_for_insert(file_id, gab_json["quote"], embedded_gab=True))
+        embedded_gabs.append(
+            map_gab_for_insert(file_id, gab_json["quote"], embedded_gab=True)
+        )
 
     # Merge embedded gabs in with this gab!
     merged_mappings = {t: [] for t in data_table_names}

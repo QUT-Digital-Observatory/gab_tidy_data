@@ -12,9 +12,13 @@ logger = logging.getLogger(__name__)
 
 
 @click.command()
-@click.argument('json_files', type=click.File('r'), nargs=-1)
-@click.argument('database_filename', type=click.Path(dir_okay=False, writable=True), required=True)
-@click.option('--log_level', type=click.Choice(["warning", "info", "debug"], case_sensitive=False))
+@click.argument("json_files", type=click.File("r"), nargs=-1)
+@click.argument(
+    "database_filename", type=click.Path(dir_okay=False, writable=True), required=True
+)
+@click.option(
+    "--log_level", type=click.Choice(["warning", "info", "debug"], case_sensitive=False)
+)
 def gab_tidy_data(json_files, database_filename, log_level):
     if log_level == "warning":
         logger.setLevel(logging.WARNING)
@@ -68,5 +72,5 @@ def gab_tidy_data(json_files, database_filename, log_level):
     )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     gab_tidy_data()

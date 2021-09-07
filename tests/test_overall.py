@@ -9,31 +9,14 @@ import sqlite3
 sample_data_directory = Path(__file__).parent.resolve() / "sample_data"
 
 sample_data = [
-    {
-        "path": sample_data_directory / "sample01.json",
-        "num_authors": 2,
-        "num_posts": 2
-    },
-    {
-        "path": sample_data_directory / "sample02.json",
-        "num_authors": 2,
-        "num_posts": 2
-    },
-    {
-        "path": sample_data_directory / "sample03.json",
-        "num_authors": 1,
-        "num_posts": 1
-    }
+    {"path": sample_data_directory / "sample01.json", "num_authors": 2, "num_posts": 2},
+    {"path": sample_data_directory / "sample02.json", "num_authors": 2, "num_posts": 2},
+    {"path": sample_data_directory / "sample03.json", "num_authors": 1, "num_posts": 1},
 ]
 
 
 @pytest.mark.parametrize(
-    "samples_to_use",
-    [
-        ([]),
-        ([sample_data[0]]),
-        (sample_data[0:3])
-    ]
+    "samples_to_use", [([]), ([sample_data[0]]), (sample_data[0:3])]
 )
 def test_cli(tmp_path, samples_to_use):
     runner = CliRunner()

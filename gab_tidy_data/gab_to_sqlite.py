@@ -12,15 +12,12 @@ import gab_tidy_data.gab_data_mapping as data_mapping
 
 logger = getLogger(__name__)
 
-metadata_table_names = [
-    '_gab_tidy_data',
-    '_inserted_files'
-]
+metadata_table_names = ["_gab_tidy_data", "_inserted_files"]
 all_table_names = metadata_table_names + data_mapping.data_table_names
 
 
 def initialise_empty_database(db_connection: sqlite3.Connection):
-    with open_text('gab_tidy_data', 'gab_schema.sql') as sql_file:
+    with open_text("gab_tidy_data", "gab_schema.sql") as sql_file:
         logger.debug(f"Initialising database from SQL file {sql_file.name}")
         db_connection.executescript("\n".join(sql_file))
 
@@ -47,10 +44,12 @@ def load_file_to_sqlite(json_fh: TextIO, db_connection) -> Tuple[int, int]:
     failed_parsing = []
 
     # File metadata
-    db.execute("""
+    db.execute(
+        """
         insert into _inserted_files (filename, inserted_by_version)
         values (:filename, :inserted_by_version)
-    """, {"filename": friendly_filename, "inserted_by_version": "superalpha"}
+    """,
+        {"filename": friendly_filename, "inserted_by_version": "superalpha"},
     )
 
     file_id = db.lastrowid
@@ -80,18 +79,21 @@ def load_file_to_sqlite(json_fh: TextIO, db_connection) -> Tuple[int, int]:
     num_gabs_inserted = db.fetchone()[0]
 
     # Update the file metadata table accordingly
-    db.execute("""
+    db.execute(
+        """
         update _inserted_files 
         set num_gabs_inserted = :num_gabs_inserted,
             num_parsing_failures = :num_parsing_failures,
             inserted_at = :now
         where id = :file_id
-    """, {
-        "file_id": file_id,
-        "num_gabs_inserted": num_gabs_inserted,
-        "num_parsing_failures": len(failed_parsing),
-        "now": dt.datetime.utcnow()
-    })
+    """,
+        {
+            "file_id": file_id,
+            "num_gabs_inserted": num_gabs_inserted,
+            "num_parsing_failures": len(failed_parsing),
+            "now": dt.datetime.utcnow(),
+        },
+    )
 
     # Done with this file!
     db_connection.commit()
@@ -128,8 +130,9 @@ def fetch_db_contents(db_connection, since: Optional[dt.datetime] = None):
         """
             select filename, num_gabs_inserted, num_parsing_failures 
             from _inserted_files
-        """ + date_clause,
-        {"since": since}
+        """
+        + date_clause,
+        {"since": since},
     )
 
     return db.fetchall()
