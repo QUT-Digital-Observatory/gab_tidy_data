@@ -4,7 +4,7 @@ include pyproject.toml
 include *.md
 
 # Include the license file
-# include LICENSE
+include LICENSE
 
 # Include required SQL
 include gab_tidy_data/gab_schema.sql
