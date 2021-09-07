@@ -22,9 +22,13 @@ setup(
     author="QUT Digital Observatory",
     author_email="digitalobservatory@qut.edu.au",
     url="https://github.com/QUT-Digital-Observatory/gab_tidy_data",
+    license="MIT",
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License",
+        "Intended Audience :: Science/Research",
+        "Topic :: Sociology"
     ],
     use_scm_version=True,
     setup_requires=["setuptools_scm"],
