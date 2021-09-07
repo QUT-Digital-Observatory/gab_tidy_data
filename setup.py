@@ -28,7 +28,7 @@ setup(
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
         "Intended Audience :: Science/Research",
-        "Topic :: Sociology"
+        "Topic :: Sociology",
     ],
     use_scm_version=True,
     setup_requires=["setuptools_scm"],
