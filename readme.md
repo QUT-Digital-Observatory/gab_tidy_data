@@ -25,7 +25,9 @@ the [Programming Historian][ph_bash_intro].
 
 The instructions assume you are working in a suitable Python 
 [virtual environment][py_venv]. RealPython has a relatively straightforward 
-[primer on virtual environments][realpy_venv] if you are new to the concept.
+[primer on virtual environments][realpy_venv] if you are new to the concept. If you
+installed Python with Anaconda/conda, you will want to manage your virtual environments
+through [Anaconda][anaconda_venv]/[conda][conda_venv] as well.
 
 ### Download and Installation
 
@@ -66,3 +68,5 @@ must be the last argument provided to the `gab_tidy_data` command.
 [ph_bash_intro]: https://programminghistorian.org/en/lessons/intro-to-bash
 [py_venv]: https://docs.python.org/3/tutorial/venv.html
 [realpy_venv]: https://realpython.com/python-virtual-environments-a-primer/
+[conda_venv]: https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html
+[anaconda_venv]: https://docs.anaconda.com/anaconda/navigator/getting-started/#navigator-managing-environments
