@@ -31,19 +31,13 @@ through [Anaconda][anaconda_venv]/[conda][conda_venv] as well.
 
 ### Download and Installation
 
-1. In a command line, in the directory you wish the Gab Tidy Data code to sit within,
-   clone the source code from [the Gab Tidy Data repository][github_repo]
-    
-2. Navigate into the root folder for Gab Tidy Data (the folder containing `setup.py` 
-   and this readme file)
-   
-3. Ensure you are using an appropriate Python or Anaconda virtual environment
+1. Ensure you are using an appropriate Python or Anaconda virtual environment
 
-4. Install Gab Tidy Data and its requirements by running:
+2. Install Gab Tidy Data and its requirements by running:
 
-   `python -m pip install .`
+   `python -m pip install gab_tidy_data`
 
-5. Run the following to check that your environment is ready to run Gab Tidy Data:
+3. Run the following to check that your environment is ready to run Gab Tidy Data:
    
     `gab_tidy_data --help`
 
