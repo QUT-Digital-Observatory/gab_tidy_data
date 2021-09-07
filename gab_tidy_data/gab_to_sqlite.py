@@ -81,7 +81,7 @@ def load_file_to_sqlite(json_fh: TextIO, db_connection) -> Tuple[int, int]:
     # Update the file metadata table accordingly
     db.execute(
         """
-        update _inserted_files 
+        update _inserted_files
         set num_gabs_inserted = :num_gabs_inserted,
             num_parsing_failures = :num_parsing_failures,
             inserted_at = :now
@@ -128,7 +128,7 @@ def fetch_db_contents(db_connection, since: Optional[dt.datetime] = None):
 
     db.execute(
         """
-            select filename, num_gabs_inserted, num_parsing_failures 
+            select filename, num_gabs_inserted, num_parsing_failures
             from _inserted_files
         """
         + date_clause,
@@ -147,7 +147,7 @@ def schema_is_current(db_connection: sqlite3.Connection) -> bool:
 
     db.execute(
         """
-        select metadata_value from _gab_tidy_data 
+        select metadata_value from _gab_tidy_data
         where metadata_key = 'schema_version'
         """
     )

@@ -5,7 +5,7 @@ import pathlib
 
 install_requires = ["click>=8.0.1"]
 
-extras_require = {"test": ["pytest", "nox"], "develop": ["nox", "flake8"]}
+extras_require = {"test": ["pytest", "nox"], "develop": ["nox", "flake8", "black"]}
 
 
 here = pathlib.Path(__file__).parent.resolve()

@@ -247,11 +247,11 @@ insert_sql[
     "group_category"
 ] = """
     insert or ignore into group_category (
-        id, 
+        id,
         created_at, updated_at,
         text
     ) values (
-        :id, 
+        :id,
         :created_at, :updated_at,
         :text
     )

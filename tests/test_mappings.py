@@ -1,4 +1,3 @@
-import pytest
 import gab_tidy_data.gab_data_mapping as data_mapping
 from importlib.resources import open_text
 
